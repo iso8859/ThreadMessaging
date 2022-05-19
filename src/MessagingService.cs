@@ -17,7 +17,7 @@ namespace ThreadMessaging
         {
             if (_subScriptions.TryGetValue(group, out List<IMessageReceiver> receivers))
                 return receivers.Count;
-            return -1;
+            return 0;
         }
 
         public void Subscribe(string group, IMessageReceiver receiver)

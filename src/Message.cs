@@ -8,10 +8,10 @@ namespace ThreadMessaging
     {
         public Message()
         {
-            
+
         }
 
-        public Message(string _group, string _type, string _data=null, object _context=null)
+        public Message(string _group, string _type, string _data = null, object _context = null)
         {
             group = _group;
             type = _type;
@@ -24,9 +24,9 @@ namespace ThreadMessaging
         public object context { get; set; } // dev context
     }
 
-public interface IMessageReceiver
-{
-    Task NewMessageAsync(Message message);
-}
+    public interface IMessageReceiver
+    {
+        Task NewMessageAsync(Message message);
+    }
 
 }

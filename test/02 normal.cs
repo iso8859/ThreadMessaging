@@ -32,7 +32,7 @@ namespace test
             service.Publish(_testMsg);
             Task.WaitAll(ts);
             Assert.IsTrue(counter == 0);
-            Assert.IsTrue(service.GetGroupList().Count == 0);
+            Assert.IsTrue(service.GetSubscriberCount("test") == 0);
         }
     }
 

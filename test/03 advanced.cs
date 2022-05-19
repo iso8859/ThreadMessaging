@@ -9,12 +9,11 @@ namespace test
     [TestClass]
     public class _03Advanced
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello", "world");
         public MessagingService service = new MessagingService();
         public volatile int counter;
 
         [TestMethod]
-        public async Task TestMethod1()
+        public void TestMethod1()
         {
             counter = 100;
             
