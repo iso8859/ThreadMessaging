@@ -1,0 +1,19 @@
+﻿@page "/"
+<PageTitle>Chat (@_msgservice.GetSubscriberCount("chat"))</PageTitle>
+
+<div class="message">
+    <div class="message-header">
+        <input type="text" @bind-value="@nextMessage" placeholder="Type your message here...">
+        <button @onclick="(e)=>SendMessage()">Send</button>
+    </div>
+    <div>
+        <ul>
+            @foreach (string message in @messages)
+            {
+                <li>
+                    @message
+                </li>
+            }
+        </ul>
+    </div>
+</div>

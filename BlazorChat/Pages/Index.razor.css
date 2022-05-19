@@ -1,0 +1,10 @@
+.message
+{
+    display:flex;
+    flex-direction:column;
+}
+
+.message-header{
+    display:flex;
+    flex-direction:row;
+}
