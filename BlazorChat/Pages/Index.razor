@@ -4,7 +4,8 @@
 <div class="message">
     <div class="message-header">
         <input type="text" @bind-value="@nextMessage" placeholder="Type your message here...">
-        <button @onclick="(e)=>SendMessage()">Send</button>
+        <button @onclick="(e)=>SendMessage(0)">All</button>
+        <button @onclick="(e)=>SendMessage(1)">All except me</button>
     </div>
     <div>
         <ul>

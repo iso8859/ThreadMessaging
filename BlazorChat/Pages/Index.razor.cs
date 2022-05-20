@@ -1,28 +1,28 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
-using System.Net.Http;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.Web.Virtualization;
-using Microsoft.JSInterop;
-using BlazorChat;
-using BlazorChat.Shared;
 using ThreadMessaging;
 
 namespace BlazorChat.Pages
 {
-    public partial class Index : IMessageReceiver, IAsyncDisposable
+    public partial class Index : IAsyncDisposable
     {
+        public class MyMessageReceiver : MessageReceiver
+        {
+            Index _index;
+            public MyMessageReceiver(Index index)
+            {
+                _index = index;
+            }
+            public override Task NewMessageAsync(Message message)
+            {
+                return _index.NewMessageAsync(message);
+            }
+        }
+
         List<string> messages = new List<string>();
         string nextMessage;
-        [Inject] 
-        public ThreadMessaging.MessagingService _msgservice { get; set; }
+        MyMessageReceiver receiver;
+        [Inject]
+        public MessagingService _msgservice { get; set; }
 
         public async Task NewMessageAsync(Message message)
         {
@@ -35,18 +35,22 @@ namespace BlazorChat.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            await _msgservice.SubscribeAsync("chat", this);
+            receiver = new MyMessageReceiver(this);
+            await _msgservice.SubscribeAsync("chat", receiver);
             base.OnInitialized();
         }
 
-        public Task SendMessage()
+        public Task SendMessage(int type)
         {
-            return _msgservice.PublishAsync(new Message("chat", "user", nextMessage));
+            if (type == 0)
+                return _msgservice.PublishAsync(new Message("chat", "user", nextMessage));
+            else //if (type==1)
+                return _msgservice.PublishExceptAsync(new Message("chat", "user", nextMessage), 60, receiver);
         }
 
         public async ValueTask DisposeAsync()
         {
-            await _msgservice.UnsubscribeAsync("chat", this);
+            await _msgservice.UnsubscribeAsync("chat", receiver);
         }
     }
 }

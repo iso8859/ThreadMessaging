@@ -6,16 +6,15 @@ using ThreadMessaging;
 namespace test
 {
     [TestClass]
-    public class _01Simple : IMessageReceiver
+    public class _01Simple : MessageReceiver
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello", "world");
+        readonly Message _testMsg = new Message("test", "msg", "hello");
         CountdownEvent _cde = new CountdownEvent(1);
-        public Task NewMessageAsync(Message message)
+        override public Task NewMessageAsync(Message message)
         {
             if (message.group == _testMsg.group
                 && message.type == _testMsg.type
-                && message.data == _testMsg.data
-                && message.context == _testMsg.context)
+                && message.data == _testMsg.data)
             {
                 _cde.Signal();
             }

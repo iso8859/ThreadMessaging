@@ -34,7 +34,7 @@ namespace test
             Assert.IsTrue(started.Wait(1000));
             CountdownEvent cde = new CountdownEvent(100);
             for (int i = 0; i < 10; i++)
-                await service.PublishAsync(new Message($"test{i}", "msg", _context: cde));
+                await service.PublishAsync(new MyMessage($"test{i}", "msg", context: cde));
             Assert.IsTrue(cde.Wait(10000));
             Assert.IsTrue(counter == 0);
 
@@ -44,17 +44,26 @@ namespace test
         }
     }
 
-    public class MyMessageReceiver : IMessageReceiver
+    public class MyMessage : Message
+    {
+        public object _context;
+        public MyMessage(string group, string type, string data = null, object context = null) : base(group, type, data)
+        {
+            _context = context;
+        }
+    }
+    public class MyMessageReceiver : MessageReceiver
     {
         public _03Advanced _root;
         public string group;
+
         public async Task NewMessageAsync(Message message)
         {
             await Task.Delay(250);
             if (message.group == group)
             {
                 Interlocked.Decrement(ref _root.counter);
-                ((CountdownEvent)message.context).Signal();
+                ((CountdownEvent)((MyMessage)message)._context).Signal();
             }
         }
     }

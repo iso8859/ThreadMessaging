@@ -9,7 +9,7 @@ namespace test
     [TestClass]
     public class _02Normal
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello", "world");
+        readonly Message _testMsg = new Message("test", "msg", "hello");
         public MessagingService service = new MessagingService();
         public volatile int counter;
 
@@ -36,9 +36,9 @@ namespace test
         }
     }
 
-    public class _02Worker : IMessageReceiver
+    public class _02Worker : MessageReceiver
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello", "world");
+        readonly Message _testMsg = new Message("test", "msg", "hello");
         CountdownEvent _cde = new CountdownEvent(1);
         _02Normal _root;
 
@@ -47,12 +47,11 @@ namespace test
             _root = root;
         }
 
-        public Task NewMessageAsync(Message message)
+        override public Task NewMessageAsync(Message message)
         {
             if (message.group == _testMsg.group
                 && message.type == _testMsg.type
-                && message.data == _testMsg.data
-                && message.context == _testMsg.context)
+                && message.data == _testMsg.data)
             {
                 Interlocked.Decrement(ref _root.counter);
                 _cde.Signal();
