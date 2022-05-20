@@ -13,7 +13,7 @@ namespace test
         public volatile int counter;
 
         [TestMethod]
-        public void TestMethod1()
+        public async Task TestMethod1()
         {
             counter = 100;
             
@@ -25,16 +25,16 @@ namespace test
             for (int i=0; i<10; i++)
             {
                 int local = i;
-                ts[i] = Task.Run(() =>
+                ts[i] = Task.Run(async () =>
                 {
                     workers[local] = new _03Worker(this);
-                    workers[local].Start(exit, started);
+                    await workers[local].StartAsync(exit, started);
                 });
             }
             Assert.IsTrue(started.Wait(1000));
             CountdownEvent cde = new CountdownEvent(100);
             for (int i = 0; i < 10; i++)
-                service.Publish(new Message($"test{i}", "msg", _context: cde));
+                await service.PublishAsync(new Message($"test{i}", "msg", _context: cde));
             Assert.IsTrue(cde.Wait(10000));
             Assert.IsTrue(counter == 0);
 
@@ -68,19 +68,19 @@ namespace test
 
         List<MyMessageReceiver> msgList = new List<MyMessageReceiver>();
 
-        public bool Start(ManualResetEvent exit, CountdownEvent started)
+        public async Task<bool> StartAsync(ManualResetEvent exit, CountdownEvent started)
         {
             started.Signal();
             MyMessageReceiver[] receivers = new MyMessageReceiver[10];
             for (int i = 0; i < 10; i++)
             {
                 receivers[i] = new MyMessageReceiver() { _root = _root, group = $"test{i}" };
-                _root.service.Subscribe($"test{i}", receivers[i]);
+                await _root.service.SubscribeAsync($"test{i}", receivers[i]);
             }
             bool result = exit.WaitOne(1000);
             for (int i = 0; i < 10; i++)
             {
-                _root.service.Unsubscribe($"test{i}", receivers[i]);
+                await _root.service.UnsubscribeAsync($"test{i}", receivers[i]);
             }
             return result;
         }

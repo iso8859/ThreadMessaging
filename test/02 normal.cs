@@ -14,7 +14,7 @@ namespace test
         public volatile int counter;
 
         [TestMethod]
-        public void TestMethod1()
+        public async Task TestMethod1()
         {
             counter = 10;
             Task[] ts = new Task[10];
@@ -22,14 +22,14 @@ namespace test
             for (int i=0; i<10; i++)
             {
                 int local = i;
-                ts[i] = Task.Run(() =>
+                ts[i] = Task.Run(async () =>
                 {
                     var tmp = new _02Worker(this);
-                    tmp.Start(i, started);
+                    await tmp.StartAsync(i, started);
                 });
             }
             Assert.IsTrue(started.Wait(10000));
-            service.Publish(_testMsg);
+            await service.PublishAsync(_testMsg);
             Task.WaitAll(ts);
             Assert.IsTrue(counter == 0);
             Assert.IsTrue(service.GetSubscriberCount("test") == 0);
@@ -61,15 +61,15 @@ namespace test
         }
 
         
-        public void Start(int i, CountdownEvent started)
+        public async Task StartAsync(int i, CountdownEvent started)
         {
             started.Signal();
-            _root.service.Subscribe(_testMsg.group, this);
+            await _root.service.SubscribeAsync(_testMsg.group, this);
             bool b = _cde.Wait(1000);
             if (!b)
                 Console.WriteLine(i);
             Assert.IsTrue(b);
-            _root.service.Unsubscribe(_testMsg.group, this);
+            await _root.service.UnsubscribeAsync(_testMsg.group, this);
         }
     }
 };

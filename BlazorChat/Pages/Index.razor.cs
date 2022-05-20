@@ -33,21 +33,20 @@ namespace BlazorChat.Pages
             }
         }
 
-        protected override void OnInitialized()
+        protected override async Task OnInitializedAsync()
         {
-            _msgservice.Subscribe("chat", this);
+            await _msgservice.SubscribeAsync("chat", this);
             base.OnInitialized();
         }
 
-        public void SendMessage()
+        public Task SendMessage()
         {
-            _msgservice.Publish(new Message("chat", "user", nextMessage));
+            return _msgservice.PublishAsync(new Message("chat", "user", nextMessage));
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            _msgservice.Unsubscribe("chat", this);
-            return default;
+            await _msgservice.UnsubscribeAsync("chat", this);
         }
     }
 }

@@ -23,13 +23,13 @@ namespace test
         }
 
         [TestMethod]
-        public void TestMethod1()
+        public async Task TestMethod1()
         {
             MessagingService service = new MessagingService();
-            service.Subscribe(_testMsg.group, this);
-            service.Publish(_testMsg);
+            await service.SubscribeAsync(_testMsg.group, this);
+            await service.PublishAsync(_testMsg);
             Assert.IsTrue(_cde.Wait(1000));
-            service.Unsubscribe(_testMsg.group, this);
+            await service.UnsubscribeAsync(_testMsg.group, this);
             Assert.IsTrue(service.GetGroupList().Count == 0);
         }
     }

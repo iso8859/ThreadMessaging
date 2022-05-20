@@ -20,7 +20,7 @@ namespace ThreadMessaging
             return 0;
         }
 
-        public void Subscribe(string group, IMessageReceiver receiver)
+        public async Task SubscribeAsync(string group, IMessageReceiver receiver)
         {
             _subScriptions.AddOrUpdate(group, new List<IMessageReceiver>() { receiver }, (key, value) =>
             {
@@ -28,9 +28,15 @@ namespace ThreadMessaging
                     value.Add(receiver);
                 return value;
             });
+            await OnSubscribeAsync(group, receiver);
         }
 
-        public void Unsubscribe(string group, IMessageReceiver receiver)
+        public virtual Task OnSubscribeAsync(string group, IMessageReceiver receiver)
+        {
+            return Task.CompletedTask;
+        }
+
+        public async Task UnsubscribeAsync(string group, IMessageReceiver receiver)
         {
             if (_subScriptions.TryGetValue(group, out List<IMessageReceiver> receivers))
             {
@@ -41,9 +47,15 @@ namespace ThreadMessaging
                         _subScriptions.TryRemove(group, out List<IMessageReceiver> receivers2);
                 }
             }
+            await OnUnsubscribeAsync(group, receiver);
         }
 
-        public void Publish(Message message)
+        public virtual Task OnUnsubscribeAsync(string group, IMessageReceiver receiver)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task PublishAsync(Message message)
         {
             if (_subScriptions.TryGetValue(message.group, out List<IMessageReceiver> receivers))
             {
@@ -55,6 +67,7 @@ namespace ThreadMessaging
                     await receiver.NewMessageAsync(message);
                 });
             }
+            return Task.CompletedTask;
         }
     }
 }
