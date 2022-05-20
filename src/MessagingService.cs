@@ -22,16 +22,17 @@ namespace ThreadMessaging
 
         public async Task SubscribeAsync(string group, IMessageReceiver receiver)
         {
+            bool newGroup = !_subScriptions.ContainsKey(group);
             _subScriptions.AddOrUpdate(group, new List<IMessageReceiver>() { receiver }, (key, value) =>
             {
                 lock (value)
                     value.Add(receiver);
                 return value;
             });
-            await OnSubscribeAsync(group, receiver);
+            await OnSubscribeAsync(group, receiver, newGroup);
         }
 
-        public virtual Task OnSubscribeAsync(string group, IMessageReceiver receiver)
+        public virtual Task OnSubscribeAsync(string group, IMessageReceiver receiver, bool newGroup)
         {
             return Task.CompletedTask;
         }
@@ -47,10 +48,10 @@ namespace ThreadMessaging
                         _subScriptions.TryRemove(group, out List<IMessageReceiver> receivers2);
                 }
             }
-            await OnUnsubscribeAsync(group, receiver);
+            await OnUnsubscribeAsync(group, receiver, !_subScriptions.ContainsKey(group));
         }
 
-        public virtual Task OnUnsubscribeAsync(string group, IMessageReceiver receiver)
+        public virtual Task OnUnsubscribeAsync(string group, IMessageReceiver receiver, bool deletedGroup)
         {
             return Task.CompletedTask;
         }
