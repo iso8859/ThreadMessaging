@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ThreadMessaging
@@ -15,9 +16,9 @@ namespace ThreadMessaging
             this.msgSvc = msgSvc;
         }
         public Task SubscribeAsync(string groupId, MessageReceiver receiver) => AddAsync(groupId, receiver);
-        public override Task OnAddedAsync(string key, bool newKey, MessageReceiver obj) => msgSvc.OnUnsubscribeAsync != null ? msgSvc.OnUnsubscribeAsync(this, key, newKey, obj) : Task.CompletedTask;
+        public override Task OnAddedAsync(string key, bool newKey, MessageReceiver obj) => msgSvc.OnSubscribeAsync != null ? msgSvc.OnSubscribeAsync(this, key, newKey, obj) : Task.CompletedTask;
         public Task UnsubscribeAsync(string groupId, MessageReceiver receiver) => RemoveAsync(groupId, receiver);
-        override public Task OnRemovedAsync(string key, bool newKey, MessageReceiver obj) => msgSvc.OnSubscribeAsync != null ? msgSvc.OnSubscribeAsync(this, key, newKey, obj) : Task.CompletedTask;
+        public override Task OnRemovedAsync(string key, bool groupDeleted, MessageReceiver obj) => msgSvc.OnUnsubscribeAsync != null ? msgSvc.OnUnsubscribeAsync(this, key, groupDeleted, obj) : Task.CompletedTask;
         public Task PublishAsync(Message message, int expireInSecond = 60)
         {
             if (message.tenantId != tenantId)
@@ -61,6 +62,7 @@ namespace ThreadMessaging
     {
         ConcurrentDictionary<string, Tenant> _tenants = new ConcurrentDictionary<string, Tenant>();
         public Tenant OpenTenant(string tenantId) => _tenants.AddOrUpdate(tenantId, new Tenant(this, tenantId), (key, value) => value);
+        public Tenant OpenTenant(string tenantId, Tenant newTenant) => _tenants.AddOrUpdate(tenantId, newTenant, (key, value) => newTenant);
         public Func<Tenant, string, bool, MessageReceiver, Task> OnSubscribeAsync; // Tenant, groupId, newgroup, MessageReceiver
         public Func<Tenant, string, bool, MessageReceiver, Task> OnUnsubscribeAsync; // Tenant, groupId, groupDeleted, MessageReceiver, 
         public async Task PublishAsync(Message message, int expireInSecond = 60)
@@ -68,5 +70,7 @@ namespace ThreadMessaging
             if (_tenants.TryGetValue(message.tenantId, out Tenant tenant))
                 await tenant.PublishAsync(message, expireInSecond);
         }
+
+        public List<string> GetTenantList() => _tenants.Keys.ToList();
     }
 }

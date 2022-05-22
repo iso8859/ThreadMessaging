@@ -15,6 +15,13 @@ namespace ThreadMessaging
             return 0;
         }
 
+        public T GetAt(string key, int index)
+        {
+            if (TryGetValue(key, out List<T> list))
+                return list[index];
+            return default;
+        }
+
         public async Task AddAsync(string key, T obj)
         {
             bool newKey = true;
@@ -41,7 +48,7 @@ namespace ThreadMessaging
                     if (list.Count == 0)
                     {
                         deleted = true;
-                        TryRemove(key, out List<T> ignore);
+                        TryRemove(key, out List<T> _);
                     }
                 }
                 await OnRemovedAsync(key, deleted, obj);
