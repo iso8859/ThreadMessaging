@@ -18,39 +18,44 @@ namespace BlazorChat.Pages
             }
         }
 
-        List<string> messages = new List<string>();
-        string nextMessage;
+        List<string> messagesDisplayList = new List<string>();
+        string nextMessage = Guid.NewGuid().ToString();
         MyMessageReceiver receiver;
         [Inject]
         public MessagingService _msgservice { get; set; }
+        public Tenant _tenant;
+        public Message _template;
 
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                receiver = new MyMessageReceiver(this);
+                _tenant = _msgservice.OpenTenant("demo");
+                _template = _tenant.NewMessage("chat", "user");
+                await _tenant.SubscribeAsync(_template.groupId, receiver);
+                StateHasChanged();
+            }
+        }
         public async Task NewMessageAsync(Message message)
         {
-            if (message.group == "chat" && message.type == "user")
+            if (_tenant.MessageMatchTemplate(message, _template))
             {
-                messages.Add(message.data);
+                messagesDisplayList.Add(message.data);
                 await InvokeAsync(StateHasChanged);
             }
         }
-
-        protected override async Task OnInitializedAsync()
-        {
-            receiver = new MyMessageReceiver(this);
-            await _msgservice.SubscribeAsync("chat", receiver);
-            base.OnInitialized();
-        }
-
         public Task SendMessage(int type)
         {
             if (type == 0)
-                return _msgservice.PublishAsync(new Message("chat", "user", nextMessage));
+                return _tenant.PublishAsync(_tenant.NewMessageFromTemplate(_template, nextMessage));
             else //if (type==1)
-                return _msgservice.PublishExceptAsync(new Message("chat", "user", nextMessage), 60, receiver);
+                return _tenant.PublishExceptAsync(_tenant.NewMessageFromTemplate(_template, nextMessage), 60, receiver);
         }
-
         public async ValueTask DisposeAsync()
         {
-            await _msgservice.UnsubscribeAsync("chat", receiver);
+            if (_tenant != null)
+                await _tenant.UnsubscribeAsync(_template.groupId, receiver);
         }
     }
 }

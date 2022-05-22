@@ -8,13 +8,12 @@ namespace test
     [TestClass]
     public class _01Simple : MessageReceiver
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello");
+        Message _msgTemplate;
         CountdownEvent _cde = new CountdownEvent(1);
+        Tenant _tenant;
         override public Task NewMessageAsync(Message message)
         {
-            if (message.group == _testMsg.group
-                && message.type == _testMsg.type
-                && message.data == _testMsg.data)
+            if (_tenant.MessageMatchTemplate(message, _msgTemplate) && message.data == "hello")
             {
                 _cde.Signal();
             }
@@ -25,11 +24,14 @@ namespace test
         public async Task TestMethod1()
         {
             MessagingService service = new MessagingService();
-            await service.SubscribeAsync(_testMsg.group, this);
-            await service.PublishAsync(_testMsg);
+            string tenantName = "01simple";
+            _tenant = service.OpenTenant(tenantName);
+            _msgTemplate = _tenant.NewMessage("test", "msg");
+            await _tenant.SubscribeAsync(_msgTemplate.groupId, this);
+            await _tenant.PublishAsync(_tenant.NewMessageFromTemplate(_msgTemplate, "hello"));
             Assert.IsTrue(_cde.Wait(1000));
-            await service.UnsubscribeAsync(_testMsg.group, this);
-            Assert.IsTrue(service.GetGroupList().Count == 0);
+            await _tenant.UnsubscribeAsync(_msgTemplate.groupId, this);
+            Assert.IsTrue(_tenant.GetCount(tenantName) == 0);
         }
     }
 };

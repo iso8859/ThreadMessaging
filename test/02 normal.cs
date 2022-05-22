@@ -9,13 +9,18 @@ namespace test
     [TestClass]
     public class _02Normal
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello");
+        public Message _msgTemplate;
+        public Tenant _tenant;
         public MessagingService service = new MessagingService();
         public volatile int counter;
 
         [TestMethod]
         public async Task TestMethod1()
         {
+            string tenantName = "02normal";
+            _tenant = service.OpenTenant(tenantName);
+            _msgTemplate = _tenant.NewMessage("test", "msg");
+
             counter = 10;
             Task[] ts = new Task[10];
             CountdownEvent started = new CountdownEvent(10);
@@ -28,17 +33,17 @@ namespace test
                     await tmp.StartAsync(i, started);
                 });
             }
+            
             Assert.IsTrue(started.Wait(10000));
-            await service.PublishAsync(_testMsg);
+            await service.PublishAsync(_tenant.NewMessageFromTemplate(_msgTemplate, "hello"));
             Task.WaitAll(ts);
             Assert.IsTrue(counter == 0);
-            Assert.IsTrue(service.GetSubscriberCount("test") == 0);
+            Assert.IsTrue(_tenant.GetCount(_msgTemplate.groupId) == 0);
         }
     }
 
     public class _02Worker : MessageReceiver
     {
-        readonly Message _testMsg = new Message("test", "msg", "hello");
         CountdownEvent _cde = new CountdownEvent(1);
         _02Normal _root;
 
@@ -49,9 +54,7 @@ namespace test
 
         override public Task NewMessageAsync(Message message)
         {
-            if (message.group == _testMsg.group
-                && message.type == _testMsg.type
-                && message.data == _testMsg.data)
+            if (_root._tenant.MessageMatchTemplate(message, _root._msgTemplate) && message.data == "hello")
             {
                 Interlocked.Decrement(ref _root.counter);
                 _cde.Signal();
@@ -62,13 +65,10 @@ namespace test
         
         public async Task StartAsync(int i, CountdownEvent started)
         {
+            await _root._tenant.SubscribeAsync(_root._msgTemplate.groupId, this);
             started.Signal();
-            await _root.service.SubscribeAsync(_testMsg.group, this);
-            bool b = _cde.Wait(1000);
-            if (!b)
-                Console.WriteLine(i);
-            Assert.IsTrue(b);
-            await _root.service.UnsubscribeAsync(_testMsg.group, this);
+            Assert.IsTrue(_cde.Wait(1000));
+            await _root._tenant.UnsubscribeAsync(_root._msgTemplate.groupId, this);
         }
     }
 };

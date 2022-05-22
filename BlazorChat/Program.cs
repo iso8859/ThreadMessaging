@@ -1,13 +1,15 @@
 using BlazorChat.Data;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using ThreadMessaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<ThreadMessaging.MessagingService>();
+
+builder.Services.AddSingleton<MessagingService>(); // Create the service instance.
 
 var app = builder.Build();
 

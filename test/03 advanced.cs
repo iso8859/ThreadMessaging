@@ -10,19 +10,27 @@ namespace test
     public class _03Advanced
     {
         public MessagingService service = new MessagingService();
+        public Tenant _tenant;
+        public Message _msgTemplate;
+        public CountdownEvent _cde = new CountdownEvent(100);
+
         public volatile int counter;
 
         [TestMethod]
         public async Task TestMethod1()
         {
             counter = 100;
-            
+
+            string tenantName = "03Advanced";
+            _tenant = service.OpenTenant(tenantName);
+            _msgTemplate = _tenant.NewMessage("test", "msg");
+
             Task[] ts = new Task[10];
             _03Worker[] workers = new _03Worker[10];
             ManualResetEvent exit = new ManualResetEvent(false);
 
             CountdownEvent started = new CountdownEvent(10);
-            for (int i=0; i<10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 int local = i;
                 ts[i] = Task.Run(async () =>
@@ -32,15 +40,18 @@ namespace test
                 });
             }
             Assert.IsTrue(started.Wait(1000));
-            CountdownEvent cde = new CountdownEvent(100);
             for (int i = 0; i < 10; i++)
-                await service.PublishAsync(new MyMessage($"test{i}", "msg", context: cde));
-            Assert.IsTrue(cde.Wait(10000));
+            {
+                var msg = _tenant.NewMessageFromTemplate(_msgTemplate, i.ToString());
+                msg.groupId = $"test{i}";
+                await service.PublishAsync(msg);
+            }
+            Assert.IsTrue(_cde.Wait(10000));
             Assert.IsTrue(counter == 0);
 
             exit.Set();
             Task.WaitAll(ts);
-            Assert.IsTrue(service.GetGroupList().Count == 0);
+            Assert.IsTrue(_tenant.GetCount(_msgTemplate.groupId) == 0);
         }
     }
 
@@ -57,17 +68,17 @@ namespace test
         public _03Advanced _root;
         public string group;
 
-        public async Task NewMessageAsync(Message message)
+        public override Task NewMessageAsync(Message message)
         {
-            await Task.Delay(250);
-            if (message.group == group)
+            if (message.tenantId == _root._tenant.tenantId && message.groupId == group)
             {
                 Interlocked.Decrement(ref _root.counter);
-                ((CountdownEvent)((MyMessage)message)._context).Signal();
+                _root._cde.Signal();
             }
+            return Task.CompletedTask;
         }
     }
-    public class _03Worker 
+    public class _03Worker
     {
         _03Advanced _root;
         public _03Worker(_03Advanced root)
@@ -79,17 +90,17 @@ namespace test
 
         public async Task<bool> StartAsync(ManualResetEvent exit, CountdownEvent started)
         {
-            started.Signal();
             MyMessageReceiver[] receivers = new MyMessageReceiver[10];
             for (int i = 0; i < 10; i++)
             {
                 receivers[i] = new MyMessageReceiver() { _root = _root, group = $"test{i}" };
-                await _root.service.SubscribeAsync($"test{i}", receivers[i]);
+                await _root._tenant.SubscribeAsync($"test{i}", receivers[i]);
             }
-            bool result = exit.WaitOne(1000);
+            started.Signal();
+            bool result = exit.WaitOne(Timeout.Infinite);
             for (int i = 0; i < 10; i++)
             {
-                await _root.service.UnsubscribeAsync($"test{i}", receivers[i]);
+                await _root._tenant.UnsubscribeAsync($"test{i}", receivers[i]);
             }
             return result;
         }

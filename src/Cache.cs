@@ -18,17 +18,14 @@ namespace ThreadMessaging
 
         private void Purge()
         {
-            List<CacheItem<T>> toRemove = new List<CacheItem<T>>();
-            foreach (CacheItem<T> item in _cache)
+            lock (_cache)
             {
-                if (item.Expiration < DateTime.Now)
-                {
-                    toRemove.Add(item);
-                }
-            }
-            foreach (CacheItem<T> item in toRemove)
-            {
-                _cache.Remove(item);
+                List<CacheItem<T>> toRemove = new List<CacheItem<T>>();
+                foreach (CacheItem<T> item in _cache)
+                    if (item.Expiration < DateTime.Now)
+                        toRemove.Add(item);
+                foreach (CacheItem<T> item in toRemove)
+                    _cache.Remove(item);
             }
         }
 
@@ -38,19 +35,17 @@ namespace ThreadMessaging
             CacheItem<T> item = new CacheItem<T>();
             item.Value = value;
             item.Expiration = DateTime.Now.AddSeconds(expirationInSeconds);
-            _cache.Add(item);
+            lock (_cache)
+                _cache.Add(item);
         }
 
         public bool Contains(T value)
         {
             Purge();
-            foreach (CacheItem<T> item in _cache)
-            {
-                if (item.Value.Equals(value))
-                {
-                    return true;
-                }
-            }
+            lock (_cache)
+                foreach (CacheItem<T> item in _cache)
+                    if (item.Value.Equals(value))
+                        return true;
             return false;
         }
     }

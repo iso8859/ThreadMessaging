@@ -1,64 +1,28 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace ThreadMessaging
 {
-    public class MessagingService
+    public class Tenant : ConcurentDicList<MessageReceiver>
     {
-        ConcurrentDictionary<string, List<MessageReceiver>> _subScriptions = new ConcurrentDictionary<string, List<MessageReceiver>>();
-
-        public ICollection<string> GetGroupList()
+        public string tenantId { get; }
+        private MessagingService msgSvc;
+        public Tenant(MessagingService msgSvc, string tenantId)
         {
-            return _subScriptions.Keys;
+            this.tenantId = tenantId;
+            this.msgSvc = msgSvc;
         }
-
-        public int GetSubscriberCount(string group)
+        public Task SubscribeAsync(string groupId, MessageReceiver receiver) => AddAsync(groupId, receiver);
+        public override Task OnAddedAsync(string key, bool newKey, MessageReceiver obj) => msgSvc.OnUnsubscribeAsync != null ? msgSvc.OnUnsubscribeAsync(this, key, newKey, obj) : Task.CompletedTask;
+        public Task UnsubscribeAsync(string groupId, MessageReceiver receiver) => RemoveAsync(groupId, receiver);
+        override public Task OnRemovedAsync(string key, bool newKey, MessageReceiver obj) => msgSvc.OnSubscribeAsync != null ? msgSvc.OnSubscribeAsync(this, key, newKey, obj) : Task.CompletedTask;
+        public Task PublishAsync(Message message, int expireInSecond = 60)
         {
-            if (_subScriptions.TryGetValue(group, out List<MessageReceiver> receivers))
-                return receivers.Count;
-            return 0;
-        }
-
-        public async Task SubscribeAsync(string group, MessageReceiver receiver)
-        {
-            bool newGroup = !_subScriptions.ContainsKey(group);
-            _subScriptions.AddOrUpdate(group, new List<MessageReceiver>() { receiver }, (key, value) =>
-            {
-                lock (value)
-                    value.Add(receiver);
-                return value;
-            });
-            await OnSubscribeAsync(group, receiver, newGroup);
-        }
-
-        public virtual Task OnSubscribeAsync(string group, MessageReceiver receiver, bool newGroup)
-        {
-            return Task.CompletedTask;
-        }
-
-        public async Task UnsubscribeAsync(string group, MessageReceiver receiver)
-        {
-            if (_subScriptions.TryGetValue(group, out List<MessageReceiver> receivers))
-            {
-                lock (receivers)
-                {
-                    receivers.Remove(receiver);
-                    if (receivers.Count == 0)
-                        _subScriptions.TryRemove(group, out List<MessageReceiver> receivers2);
-                }
-            }
-            await OnUnsubscribeAsync(group, receiver, !_subScriptions.ContainsKey(group));
-        }
-
-        public virtual Task OnUnsubscribeAsync(string group, MessageReceiver receiver, bool deletedGroup)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task PublishAsync(Message message, int expireInSecond=60)
-        {
-            if (_subScriptions.TryGetValue(message.group, out List<MessageReceiver> receivers))
+            if (message.tenantId != tenantId)
+                throw new Exception("TenantId mismatch. Use MessagingService.PublishAsync instead.");
+            if (TryGetValue(message.groupId, out List<MessageReceiver> receivers))
             {
                 List<MessageReceiver> listClone = null;
                 lock (receivers)
@@ -74,10 +38,11 @@ namespace ThreadMessaging
             }
             return Task.CompletedTask;
         }
-
         public Task PublishExceptAsync(Message message, int expireSecond, params MessageReceiver[] msgReceivers)
         {
-            if (msgReceivers!=null)
+            if (message.tenantId != tenantId)
+                throw new Exception("TenantId mismatch. Use MessagingService.PublishAsync instead.");
+            if (msgReceivers != null)
             {
                 foreach (MessageReceiver msgreceiver in msgReceivers)
                 {
@@ -85,6 +50,23 @@ namespace ThreadMessaging
                 }
             }
             return PublishAsync(message, expireSecond);
+        }
+        public Message NewMessage(string groupId, string message, string data = null) => new Message(tenantId, groupId, message, data);
+        public Message NewMessageFromTemplate(Message msgTemplate, string data) => new Message(tenantId, msgTemplate.groupId, msgTemplate.type, data);
+        public bool MessageMatch(Message message, string groupId) => message.tenantId == tenantId && message.groupId == groupId && message.type == message.type;
+        public bool MessageMatchTemplate(Message message, Message msgTemplate) => message.tenantId == tenantId && message.groupId == msgTemplate.groupId && message.type == msgTemplate.type;
+    }
+
+    public class MessagingService
+    {
+        ConcurrentDictionary<string, Tenant> _tenants = new ConcurrentDictionary<string, Tenant>();
+        public Tenant OpenTenant(string tenantId) => _tenants.AddOrUpdate(tenantId, new Tenant(this, tenantId), (key, value) => value);
+        public Func<Tenant, string, bool, MessageReceiver, Task> OnSubscribeAsync; // Tenant, groupId, newgroup, MessageReceiver
+        public Func<Tenant, string, bool, MessageReceiver, Task> OnUnsubscribeAsync; // Tenant, groupId, groupDeleted, MessageReceiver, 
+        public async Task PublishAsync(Message message, int expireInSecond = 60)
+        {
+            if (_tenants.TryGetValue(message.tenantId, out Tenant tenant))
+                await tenant.PublishAsync(message, expireInSecond);
         }
     }
 }
