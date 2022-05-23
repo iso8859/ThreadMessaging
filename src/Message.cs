@@ -31,6 +31,11 @@ namespace ThreadMessaging
             this.groupId = groupId;
             this.type = type;
         }
+
+        public override string ToString()
+        {
+            return tenantId + "_" + groupId;
+        }
     }
 
     // Receive new messages class.

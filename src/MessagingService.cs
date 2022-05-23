@@ -54,6 +54,7 @@ namespace ThreadMessaging
             return PublishAsync(message, expireSecond);
         }
         public Message NewMessage(string groupId, string message, string data = null) => new Message(tenantId, groupId, message, data);
+        public Message NewMessageFromTemplate(Message msgTemplate, string type, string data) => new Message(tenantId, msgTemplate.groupId, type, data);
         public Message NewMessageFromTemplate(Message msgTemplate, string data) => new Message(tenantId, msgTemplate.groupId, msgTemplate.type, data);
         public bool MessageMatch(Message message, string groupId) => message.tenantId == tenantId && message.groupId == groupId && message.type == message.type;
         public bool MessageMatchTemplate(Message message, Message msgTemplate) => message.tenantId == tenantId && message.groupId == msgTemplate.groupId && message.type == msgTemplate.type;

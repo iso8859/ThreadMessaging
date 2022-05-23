@@ -1,6 +1,3 @@
-using BlazorChat.Data;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using ThreadMessaging;
 
 var builder = WebApplication.CreateBuilder(args);
