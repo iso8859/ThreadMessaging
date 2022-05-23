@@ -38,7 +38,7 @@ namespace ThreadMessaging
     public abstract class MessageReceiver
     {
         public Cache<string> _cache = new Cache<string>();
-        public abstract Task NewMessageAsync(Message message);
+        public abstract Task NewMessageAsync(Message message, CancellationToken cancellation);
     }
 
 }

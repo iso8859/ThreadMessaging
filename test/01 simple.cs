@@ -11,7 +11,7 @@ namespace test
         Message _msgTemplate;
         CountdownEvent _cde = new CountdownEvent(1);
         Tenant _tenant;
-        override public Task NewMessageAsync(Message message)
+        override public Task NewMessageAsync(Message message, CancellationToken cancel)
         {
             if (_tenant.MessageMatchTemplate(message, _msgTemplate) && message.data == "hello")
             {

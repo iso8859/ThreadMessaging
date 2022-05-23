@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ThreadMessaging
@@ -19,7 +20,7 @@ namespace ThreadMessaging
         public override Task OnAddedAsync(string key, bool newKey, MessageReceiver obj) => msgSvc.OnSubscribeAsync != null ? msgSvc.OnSubscribeAsync(this, key, newKey, obj) : Task.CompletedTask;
         public Task UnsubscribeAsync(string groupId, MessageReceiver receiver) => RemoveAsync(groupId, receiver);
         public override Task OnRemovedAsync(string key, bool groupDeleted, MessageReceiver obj) => msgSvc.OnUnsubscribeAsync != null ? msgSvc.OnUnsubscribeAsync(this, key, groupDeleted, obj) : Task.CompletedTask;
-        public Task PublishAsync(Message message, int expireInSecond = 60)
+        public Task PublishAsync(Message message, int expireInSecond = 60, CancellationToken cancel = default)
         {
             if (message.tenantId != tenantId)
                 throw new Exception("TenantId mismatch. Use MessagingService.PublishAsync instead.");
@@ -33,7 +34,7 @@ namespace ThreadMessaging
                     if (!receiver._cache.Contains(message.Uid))
                     {
                         receiver._cache.Add(message.Uid, expireInSecond);
-                        await receiver.NewMessageAsync(message);
+                        await receiver.NewMessageAsync(message, cancel);
                     }
                 });
             }
@@ -65,7 +66,7 @@ namespace ThreadMessaging
         public Tenant OpenTenant(string tenantId, Tenant newTenant) => _tenants.AddOrUpdate(tenantId, newTenant, (key, value) => newTenant);
         public Func<Tenant, string, bool, MessageReceiver, Task> OnSubscribeAsync; // Tenant, groupId, newgroup, MessageReceiver
         public Func<Tenant, string, bool, MessageReceiver, Task> OnUnsubscribeAsync; // Tenant, groupId, groupDeleted, MessageReceiver, 
-        public async Task PublishAsync(Message message, int expireInSecond = 60)
+        public async Task PublishAsync(Message message, int expireInSecond = 60, CancellationToken cancellation = default)
         {
             if (_tenants.TryGetValue(message.tenantId, out Tenant tenant))
                 await tenant.PublishAsync(message, expireInSecond);

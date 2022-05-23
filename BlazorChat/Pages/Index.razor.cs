@@ -12,9 +12,9 @@ namespace BlazorChat.Pages
             {
                 _index = index;
             }
-            public override Task NewMessageAsync(Message message)
+            public override Task NewMessageAsync(Message message, CancellationToken cancel)
             {
-                return _index.NewMessageAsync(message);
+                return _index.NewMessageAsync(message, cancel);
             }
         }
 
@@ -37,7 +37,7 @@ namespace BlazorChat.Pages
                 StateHasChanged();
             }
         }
-        public async Task NewMessageAsync(Message message)
+        public async Task NewMessageAsync(Message message, CancellationToken cancel)
         {
             if (_tenant.MessageMatchTemplate(message, _template))
             {

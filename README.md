@@ -3,6 +3,8 @@ Dotnet C# Thread Messaging class
 
 I tried to create a ultra simple inter-thread messaging engine.
 
+I want it to be the simplest multi-tenant thread safe messaging engine.
+
 - Create a MessagingService instance.
 - Subscribe or Unsubscribe MessageReceiver with group name
 - Call Publish

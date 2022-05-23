@@ -68,7 +68,7 @@ namespace test
         public _03Advanced _root;
         public string group;
 
-        public override Task NewMessageAsync(Message message)
+        public override Task NewMessageAsync(Message message, CancellationToken cancel)
         {
             if (message.tenantId == _root._tenant.tenantId && message.groupId == group)
             {

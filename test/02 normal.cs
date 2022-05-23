@@ -52,7 +52,7 @@ namespace test
             _root = root;
         }
 
-        override public Task NewMessageAsync(Message message)
+        override public Task NewMessageAsync(Message message, CancellationToken cancel)
         {
             if (_root._tenant.MessageMatchTemplate(message, _root._msgTemplate) && message.data == "hello")
             {
