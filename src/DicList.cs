@@ -29,7 +29,10 @@ namespace ThreadMessaging
             {
                 newKey = false;
                 lock (o)
-                    o.Add(obj);
+                {
+                    if (!o.Contains(obj))
+                        o.Add(obj);
+                }
                 return o;
             });
             await OnAddedAsync(key, newKey, obj);

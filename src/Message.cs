@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,10 +11,10 @@ namespace ThreadMessaging
     {
         public string Uid { get; set; } = Guid.NewGuid().ToString(); // get;set; To support serialization
         public DateTime Timestamp { get; set; } = DateTime.Now; // get;set; To support serialization
-        public string tenantId { get; set; }// This is the tenantId 
-        public string groupId { get; set; }   // This is the group this message has been sent to.
-        public string type { get; set; }    // Message type, for example "refresh" or "update"
-        public string data { get; set; }    // data, for example a JSON string
+        public string tenantId { get; set; }    // This is the tenantId 
+        public string groupId { get; set; }     // This is the group this message has been sent to.
+        public string type { get; set; }        // Message type, for example "refresh" or "update"
+        public string data { get; set; }        // data, for example a JSON string
         public Message()
         {
 
@@ -36,6 +37,25 @@ namespace ThreadMessaging
         {
             return tenantId + "_" + groupId;
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Message)
+            {
+                Message mobj = obj as Message;
+                return mobj.tenantId == tenantId && mobj.groupId == groupId;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            int result = tenantId.GetHashCode();
+            result += 31 * result + groupId.GetHashCode();
+            result += 31 * result + type.GetHashCode();
+            result += 31 * result + data.GetHashCode();
+            return result;
+        }
     }
 
     // Receive new messages class.
@@ -46,4 +66,34 @@ namespace ThreadMessaging
         public abstract Task NewMessageAsync(Message message, CancellationToken cancellation);
     }
 
+    public class GroupBuilder
+    {
+        Dictionary<string, Message> _messages = new Dictionary<string, Message>();
+        string[] _levels;
+        string _tenantId;
+        public GroupBuilder(string tenantId, params string[] levels)
+        {
+            _levels = levels;
+            _tenantId = tenantId;
+        }
+
+        public string Get(int level, string sep = "_")
+        {
+            return string.Join(sep, _levels.Take(level));
+        }
+
+        public Message Get(string name) => _messages[name];
+        public Message Add(string name, int level, string type, string sep = "_")
+        {
+            var m = new Message(_tenantId, Get(level, sep), type);
+            _messages[name] = m;
+            return m;
+        }
+
+        public bool Match(string name, Message msgToCheck)
+        {
+            Message msg = _messages[name];
+            return msg.Equals(msgToCheck) && msg.type == msgToCheck.type;
+        }
+    }
 }

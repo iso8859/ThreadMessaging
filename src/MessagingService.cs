@@ -22,8 +22,7 @@ namespace ThreadMessaging
         public override Task OnRemovedAsync(string key, bool groupDeleted, MessageReceiver obj) => msgSvc.OnUnsubscribeAsync != null ? msgSvc.OnUnsubscribeAsync(this, key, groupDeleted, obj) : Task.CompletedTask;
         public Task PublishAsync(Message message, int expireInSecond = 60, CancellationToken cancel = default)
         {
-            if (message.tenantId != tenantId)
-                throw new Exception("TenantId mismatch. Use MessagingService.PublishAsync instead.");
+            message.tenantId = tenantId;
             if (TryGetValue(message.groupId, out List<MessageReceiver> receivers))
             {
                 List<MessageReceiver> listClone = null;
@@ -53,7 +52,7 @@ namespace ThreadMessaging
             }
             return PublishAsync(message, expireSecond);
         }
-        public Message NewMessage(string groupId, string message, string data = null) => new Message(tenantId, groupId, message, data);
+        public Message NewMessage(string groupId, string type, string data = null) => new Message(tenantId, groupId, type, data);
         public Message NewMessageFromTemplate(Message msgTemplate, string type, string data) => new Message(tenantId, msgTemplate.groupId, type, data);
         public Message NewMessageFromTemplate(Message msgTemplate, string data) => new Message(tenantId, msgTemplate.groupId, msgTemplate.type, data);
         public bool MessageMatch(Message message, string groupId) => message.tenantId == tenantId && message.groupId == groupId && message.type == message.type;
@@ -72,7 +71,7 @@ namespace ThreadMessaging
             if (_tenants.TryGetValue(message.tenantId, out Tenant tenant))
                 await tenant.PublishAsync(message, expireInSecond);
         }
-
+        
         public List<string> GetTenantList() => _tenants.Keys.ToList();
     }
 }
