@@ -15,6 +15,7 @@ namespace ThreadMessaging
         public string groupId { get; set; }     // This is the group this message has been sent to.
         public string type { get; set; }        // Message type, for example "refresh" or "update"
         public string data { get; set; }        // data, for example a JSON string
+        public string path { get; set; } = "/"; // Path for debug
         public Message()
         {
 
@@ -55,6 +56,12 @@ namespace ThreadMessaging
             result += 31 * result + type.GetHashCode();
             result += 31 * result + data.GetHashCode();
             return result;
+        }
+
+        public void AppendPath(string path)
+        {
+            this.path += path + "/";
+
         }
     }
 
