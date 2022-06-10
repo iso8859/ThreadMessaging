@@ -39,5 +39,5 @@ public class _01Simple : MessageReceiver
 }
 ````
 
-You have OnAddedAsync and OnRemovedAsync events to plug this another message solution, for example SignalR.
+You have OnAddedAsync and OnRemovedAsync events to plug this into another message solution, for example SignalR.
 
