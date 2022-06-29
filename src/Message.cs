@@ -102,5 +102,7 @@ namespace ThreadMessaging
             Message msg = _messages[name];
             return msg.Equals(msgToCheck) && msg.type == msgToCheck.type;
         }
+
+        public string[] Levels { get => _levels; }
     }
 }
