@@ -72,6 +72,11 @@ namespace ThreadMessaging
                 await tenant.PublishAsync(message, expireInSecond);
         }
         
+        public async Task PublishExceptAsync(Message message, int expireInSecond, params MessageReceiver[] msgReceivers)
+        {
+            if (_tenants.TryGetValue(message.tenantId, out Tenant tenant))
+                await tenant.PublishExceptAsync(message, expireInSecond, msgReceivers);
+        }
         public List<string> GetTenantList() => _tenants.Keys.ToList();
     }
 }
