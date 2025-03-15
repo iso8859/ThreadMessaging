@@ -11,7 +11,7 @@ namespace ThreadMessaging
     {
         public string Uid { get; set; } = Guid.NewGuid().ToString(); // get;set; To support serialization
         public DateTime Timestamp { get; set; } = DateTime.Now; // get;set; To support serialization
-        public string tenantId { get; set; }    // This is the tenantId 
+        public string tenantId { get; set; }    // This is the tenantId = "domain.appId_domain._id"
         public string groupId { get; set; }     // This is the group this message has been sent to.
         public string type { get; set; }        // Message type, for example "refresh" or "update"
         public string data { get; set; }        // data, for example a JSON string
